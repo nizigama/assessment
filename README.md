@@ -30,7 +30,7 @@ npm run dev
 | `PIXELFORGE_WEBHOOK_SECRET` | That key's `whsec_…` signing secret                                   |
 | `PIXELFORGE_BASE_URL`       | Defaults to `https://pixelforge.promptedit.dev/v1`                    |
 
-Set the key's webhook URL in the Pixelforge dashboard to `https://<your-host>/webhooks/pixelforge`. Locally you need a public tunnel to the app on port 8080, for example `expose share http://localhost:8080` (ships with Herd), `ngrok http 8080` or `cloudflared tunnel --url http://localhost:8080`.
+Set the key's webhook URL in the Pixelforge dashboard to `https://<your-host>/webhooks/pixelforge`. Locally you need a public tunnel to the app on port 8088, for example `expose share http://localhost:8088` (ships with Herd), `ngrok http 8088` or `cloudflared tunnel --url http://localhost:8088`.
 
 Make yourself an admin with `./vendor/bin/sail artisan users:make-admin you@example.com`.
 
