@@ -24,13 +24,13 @@ npm run dev
 ./vendor/bin/sail artisan schedule:work       # polls for overdue webhooks every minute
 ```
 
-| Variable | What it is |
-|---|---|
-| `PIXELFORGE_API_KEY` | The API key for this environment (use a separate key per environment) |
-| `PIXELFORGE_WEBHOOK_SECRET` | That key's `whsec_…` signing secret |
-| `PIXELFORGE_BASE_URL` | Defaults to `https://pixelforge.promptedit.dev/v1` |
+| Variable                    | What it is                                                            |
+| --------------------------- | --------------------------------------------------------------------- |
+| `PIXELFORGE_API_KEY`        | The API key for this environment (use a separate key per environment) |
+| `PIXELFORGE_WEBHOOK_SECRET` | That key's `whsec_…` signing secret                                   |
+| `PIXELFORGE_BASE_URL`       | Defaults to `https://pixelforge.promptedit.dev/v1`                    |
 
-Set the key's webhook URL in the Pixelforge dashboard to `https://<your-host>/webhooks/pixelforge`. Locally you need a tunnel such as `cloudflared tunnel --url http://localhost` or `ngrok http 80`.
+Set the key's webhook URL in the Pixelforge dashboard to `https://<your-host>/webhooks/pixelforge`. Locally you need a public tunnel to the app on port 8080, for example `expose share http://localhost:8080` (ships with Herd), `ngrok http 8080` or `cloudflared tunnel --url http://localhost:8080`.
 
 Make yourself an admin with `./vendor/bin/sail artisan users:make-admin you@example.com`.
 
@@ -38,18 +38,18 @@ Make yourself an admin with `./vendor/bin/sail artisan users:make-admin you@exam
 
 ## Where things are
 
-| What | Where |
-|---|---|
-| Money maths (cost, markup, estimate) | `app/Services/PricingService.php`, `app/Support/Nanodollars.php` |
-| Everything that changes a generation's status or money | `app/Services/GenerationService.php` |
-| Balance changes (ledger) | `app/Services/CreditLedger.php` |
-| Sending to Pixelforge, with retries | `app/Jobs/SubmitGeneration.php` |
-| Pixelforge HTTP calls | `app/Services/PixelforgeClient.php` |
-| Webhook signature check | `app/Http/Middleware/VerifyPixelforgeSignature.php` |
-| Fallback poller | `app/Console/Commands/SyncPendingGenerations.php` (scheduled in `routes/console.php`) |
-| Admin report | `app/Http/Controllers/Admin/UsageReportController.php` |
-| Pages | `resources/js/pages/generations`, `credits`, `admin` |
-| Tests | `tests/Unit/PricingServiceTest.php`, `tests/Feature/{Webhooks,Generations,Credits}` |
+| What                                                   | Where                                                                                 |
+| ------------------------------------------------------ | ------------------------------------------------------------------------------------- |
+| Money maths (cost, markup, estimate)                   | `app/Services/PricingService.php`, `app/Support/Nanodollars.php`                      |
+| Everything that changes a generation's status or money | `app/Services/GenerationService.php`                                                  |
+| Balance changes (ledger)                               | `app/Services/CreditLedger.php`                                                       |
+| Sending to Pixelforge, with retries                    | `app/Jobs/SubmitGeneration.php`                                                       |
+| Pixelforge HTTP calls                                  | `app/Services/PixelforgeClient.php`                                                   |
+| Webhook signature check                                | `app/Http/Middleware/VerifyPixelforgeSignature.php`                                   |
+| Fallback poller                                        | `app/Console/Commands/SyncPendingGenerations.php` (scheduled in `routes/console.php`) |
+| Admin report                                           | `app/Http/Controllers/Admin/UsageReportController.php`                                |
+| Pages                                                  | `resources/js/pages/generations`, `credits`, `admin`                                  |
+| Tests                                                  | `tests/Unit/PricingServiceTest.php`, `tests/Feature/{Webhooks,Generations,Credits}`   |
 
 ## How money works
 
@@ -58,14 +58,14 @@ Make yourself an admin with `./vendor/bin/sail artisan users:make-admin you@exam
 - **Provider cost** = Σ tokens × rate ÷ 1,000,000, always using the `rates` Pixelforge froze on that generation. This matches `/v1/usage` to the nanodollar. A test checks it against the docs example (`0.169080000`).
 - **User price** = provider cost × 1.25, **rounded up to the next nanodollar**. The markup can produce half a nanodollar. Rounding up means we never undercharge, and overcharge by at most $0.000000001.
 - **Before submitting**, output and reference-image tokens are known exactly, while text tokens (±15%) and reasoning tokens (a range per quality) are not. So we show:
-  - **Estimated**: text tokens at `ceil(chars/4)` and reasoning at the midpoint of its range.
-  - **At most**: text tokens +15% and reasoning at its maximum. The Generate page computes this live in `resources/js/lib/pricing.ts`, a copy of the PHP logic, and the server recomputes it on submit.
+    - **Estimated**: text tokens at `ceil(chars/4)` and reasoning at the midpoint of its range.
+    - **At most**: text tokens +15% and reasoning at its maximum. The Generate page computes this live in `resources/js/lib/pricing.ts`, a copy of the PHP logic, and the server recomputes it on submit.
 - **Balances use a hold:**
-  1. On submit, the maximum price is held (taken from the balance). If the balance can't cover it, the request is refused before anything is sent.
-  2. On success, the hold is returned and the exact price is charged.
-  3. On failure, the hold is returned and nothing is charged.
+    1. On submit, the maximum price is held (taken from the balance). If the balance can't cover it, the request is refused before anything is sent.
+    2. On success, the hold is returned and the exact price is charged.
+    3. On failure, the hold is returned and nothing is charged.
 
-  The user can never go negative, and every step is a row in `credit_transactions`.
+    The user can never go negative, and every step is a row in `credit_transactions`.
 
 ## How it copes with Pixelforge
 
@@ -85,6 +85,7 @@ Make yourself an admin with `./vendor/bin/sail artisan users:make-admin you@exam
 - **Rates can change** between the estimate and creation. The charge always uses the generation's frozen rates. If rates rose in that window, the charge could exceed the hold slightly. This is accepted, because Pixelforge's prices aren't expected to change minute to minute.
 - **Images aren't stored.** Pixelforge's links expire after 24 hours, and History then says so.
 - **Live updates use polling** (Inertia `usePoll`, every 3 seconds, only while something is in progress) rather than websockets. It's simpler and plenty for this.
+- **No email verification.** The app has no mail provider, so sign-up works straight away.
 - **Buying credits is fake**: fixed $5 / $10 / $25 packs, no payment.
 - **Divergences from my usual API-only Laravel conventions:** this is an Inertia app with session auth (from the Laravel Vue starter kit), so pages take the place of a JSON API.
 
