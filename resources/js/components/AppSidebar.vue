@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { Link } from '@inertiajs/vue3';
-import { BookOpen, FolderGit2, LayoutGrid } from '@lucide/vue';
+import { Link, usePage } from '@inertiajs/vue3';
+import { ChartColumn, History, Sparkles, Wallet } from '@lucide/vue';
+import { computed } from 'vue';
 import AppLogo from '@/components/AppLogo.vue';
-import NavFooter from '@/components/NavFooter.vue';
 import NavMain from '@/components/NavMain.vue';
 import NavUser from '@/components/NavUser.vue';
 import {
@@ -14,29 +14,23 @@ import {
     SidebarMenuButton,
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
-import { dashboard } from '@/routes';
+import { exactUsd, formatUsd } from '@/lib/money';
+import { usage } from '@/routes/admin';
+import { index as credits } from '@/routes/credits';
+import { create, index as history } from '@/routes/generations';
 import type { NavItem } from '@/types';
 
-const mainNavItems: NavItem[] = [
-    {
-        title: 'Dashboard',
-        href: dashboard(),
-        icon: LayoutGrid,
-    },
-];
+const page = usePage();
+const user = computed(() => page.props.auth.user);
 
-const footerNavItems: NavItem[] = [
-    {
-        title: 'Repository',
-        href: 'https://github.com/laravel/vue-starter-kit',
-        icon: FolderGit2,
-    },
-    {
-        title: 'Documentation',
-        href: 'https://laravel.com/docs/starter-kits#vue',
-        icon: BookOpen,
-    },
-];
+const mainNavItems = computed<NavItem[]>(() => [
+    { title: 'Generate', href: create(), icon: Sparkles },
+    { title: 'History', href: history(), icon: History },
+    { title: 'Credits', href: credits(), icon: Wallet },
+    ...(user.value.is_admin
+        ? [{ title: 'Usage report', href: usage(), icon: ChartColumn }]
+        : []),
+]);
 </script>
 
 <template>
@@ -45,7 +39,7 @@ const footerNavItems: NavItem[] = [
             <SidebarMenu>
                 <SidebarMenuItem>
                     <SidebarMenuButton size="lg" as-child>
-                        <Link :href="dashboard()">
+                        <Link :href="create()">
                             <AppLogo />
                         </Link>
                     </SidebarMenuButton>
@@ -58,7 +52,16 @@ const footerNavItems: NavItem[] = [
         </SidebarContent>
 
         <SidebarFooter>
-            <NavFooter :items="footerNavItems" />
+            <Link
+                :href="credits()"
+                class="rounded-md px-2 py-1 text-sm group-data-[collapsible=icon]:hidden"
+                :title="exactUsd(user.balance_nanos)"
+            >
+                <span class="text-muted-foreground">Balance</span>
+                <span class="float-right font-medium">{{
+                    formatUsd(user.balance_nanos, 2)
+                }}</span>
+            </Link>
             <NavUser />
         </SidebarFooter>
     </Sidebar>
