@@ -1,5 +1,6 @@
 <?php
 
+use App\Exceptions\InsufficientCreditsException;
 use App\Http\Middleware\HandleAppearance;
 use App\Http\Middleware\HandleInertiaRequests;
 use Illuminate\Foundation\Application;
@@ -15,6 +16,9 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        // Pixelforge can't send a CSRF token; the webhook is authenticated by its signature instead.
+        $middleware->preventRequestForgery(except: ['webhooks/pixelforge']);
+
         $middleware->encryptCookies(except: ['appearance', 'sidebar_state']);
 
         $middleware->web(append: [
@@ -24,6 +28,10 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
+        $exceptions->render(fn (InsufficientCreditsException $e) => back()
+            ->withInput()
+            ->withErrors(['credits' => $e->getMessage()]));
+
         $exceptions->shouldRenderJsonWhen(
             fn (Request $request) => $request->is('api/*') || $request->expectsJson(),
         );
