@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\Route;
 
 Route::inertia('/', 'Welcome')->name('home');
 
-Route::middleware(['auth', 'verified'])->group(function () {
+Route::middleware('auth')->group(function () {
     // The starter kit sends users to /dashboard after login; the Generate page is our home.
     Route::redirect('dashboard', '/generate')->name('dashboard');
 
