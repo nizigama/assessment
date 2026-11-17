@@ -16,6 +16,11 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        // The app runs behind a TLS-terminating proxy (a tunnel locally, the host's load
+        // balancer when deployed). Trust its X-Forwarded-* headers so generated URLs use
+        // https and match the public host; otherwise browsers block http assets.
+        $middleware->trustProxies(at: '*');
+
         // Pixelforge can't send a CSRF token; the webhook is authenticated by its signature instead.
         $middleware->preventRequestForgery(except: ['webhooks/pixelforge']);
 
