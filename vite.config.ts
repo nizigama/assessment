@@ -1,3 +1,4 @@
+import { spawnSync } from 'node:child_process';
 import inertia from '@inertiajs/vite';
 import { wayfinder } from '@laravel/vite-plugin-wayfinder';
 import tailwindcss from '@tailwindcss/vite';
@@ -5,6 +6,8 @@ import vue from '@vitejs/plugin-vue';
 import laravel from 'laravel-vite-plugin';
 import { bunny } from 'laravel-vite-plugin/fonts';
 import { defineConfig, lazyPlugins } from 'vite-plus';
+
+const isPhpAvailable = spawnSync('php', ['--version']).status === 0;
 
 export default defineConfig({
     plugins: lazyPlugins(() => [
@@ -29,10 +32,10 @@ export default defineConfig({
         }),
         wayfinder({
             formVariants: true,
-            // Kubana builds the frontend in a Node-only image without PHP, so it uses the committed Wayfinder files.
-            command: process.env.Kubana_RESOURCE_UUID
-                ? 'true'
-                : 'php artisan wayfinder:generate',
+            // Node-only build images (Kubana) have no PHP, so they use the committed Wayfinder files.
+            command: isPhpAvailable
+                ? 'php artisan wayfinder:generate'
+                : 'true',
         }),
     ]),
     server: {
