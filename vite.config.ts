@@ -29,6 +29,10 @@ export default defineConfig({
         }),
         wayfinder({
             formVariants: true,
+            // Kubana builds the frontend in a Node-only image without PHP, so it uses the committed Wayfinder files.
+            command: process.env.Kubana_RESOURCE_UUID
+                ? 'true'
+                : 'php artisan wayfinder:generate',
         }),
     ]),
     server: {
